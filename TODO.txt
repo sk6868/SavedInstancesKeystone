@@ -1,1 +1,2 @@
 1 -- GIGANTIC memory leak when showing tooltip
+2 -- add summary tooltip (all characters) when mouseover Mythic Keystone label

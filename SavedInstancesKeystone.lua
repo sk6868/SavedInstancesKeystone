@@ -184,13 +184,12 @@ local function decodeKeystone(itemLink)
 	local A2 = getModifierText(flags, a2, modifier2)
 	local A3 = getModifierText(flags, a3, modifier3)
 	local dung = GetRealZoneText(mapid)
-	local txt = string.format(CHALLENGE_MODE_KEYSTONE_NAME, dung)
 
 	local color = select(4, GetItemQualityColor(4))
 	if (bit.band(flags,ready) ~= ready) then
 		color = select(4, GetItemQualityColor(0))
 	end
-	return txt, string.format(CHALLENGE_MODE_ITEM_POWER_LEVEL, mlvl), A1..A2..A3, color
+	return dung, mlvl, A1..A2..A3, color
 end
 
 local keystonetip
@@ -215,9 +214,18 @@ local function ShowKeystoneTooltip(cell, arg, ...)
 	openIndicator(1, "LEFT")
 	local name, mlvl, mods, color = decodeKeystone(arg)
 	local nameline = keystonetip:AddHeader()
-	keystonetip:SetCell(nameline, 1, "|c"..color..name)
-	keystonetip:SetCell(keystonetip:AddLine(), 1, YELLOWFONT..mlvl)
+	keystonetip:SetCell(nameline, 1, "|c"..color..string.format(CHALLENGE_MODE_KEYSTONE_NAME, name))
+	keystonetip:SetCell(keystonetip:AddLine(), 1, YELLOWFONT..string.format(CHALLENGE_MODE_ITEM_POWER_LEVEL, mlvl))
 	keystonetip:SetCell(keystonetip:AddLine(), 1, CHALLENGE_MODE_DUNGEON_MODIFIERS..mods)
+	finishIndicator(cell)
+end
+
+local function ShowKeystoneSummary(cell, arg, ...)
+	openIndicator(3, "LEFT","LEFT", "RIGHT")
+	for toon, klink in pairs(SavedInstancesKeystoneDB) do
+		local name, mlvl, mods, color = decodeKeystone(klink)
+		keystonetip:AddLine(YELLOWFONT..toon, name, mlvl)
+	end
 	finishIndicator(cell)
 end
 
@@ -280,6 +288,8 @@ function addon:Inject(anchorframe)
 			local kname = GetItemInfo(KeystoneId)
 			local keystonestr = string.format(" \124T%s:0\124t%s", 525134, kname or "")
 			linenum = tooltip:AddLine(YELLOWFONT .. keystonestr .. FONTEND)
+			tooltip:SetCellScript(linenum, 1, "OnEnter", ShowKeystoneSummary)
+			tooltip:SetCellScript(linenum, 1, "OnLeave", CloseTooltips)
 			firstpass = false
 			tooltip:SetScript('OnHide', tooltip_OnHide)
 			tooltip.OnRelease = tooltip_OnRelease
