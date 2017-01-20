@@ -1,0 +1,11 @@
+## Interface: 70100
+## Title: SavedInstancesKeystone
+## Notes: Add keystone information to SavedInstances
+## Dependencies: SavedInstances
+
+#@no-lib-strip@
+Libs\libs.xml
+#@end-no-lib-strip@
+
+## SavedVariables: SavedInstancesKeystoneDB
+SavedInstancesKeystone.lua
