@@ -11,6 +11,7 @@ local FONTEND = FONT_COLOR_CODE_CLOSE
 local YELLOWFONT = LIGHTYELLOW_FONT_COLOR_CODE
 local SI -- SavedInstances.core
 local thisToon = UnitName("player") .. " - " .. GetRealmName()
+local KeystoneId = 138019
 
 -- sorted traversal function for character table
 local cpairs
@@ -140,6 +141,7 @@ local function FrameOnEvent(frame, event, ...)
 				addon:SecureHook(SI, 'ShowTooltip', addon.Inject)
 			end
 			SavedInstancesKeystoneDB = SavedInstancesKeystoneDB or {}
+			local kname = GetItemInfo(KeystoneId) -- try to get the cache to store keystone itemid
 		end
 	elseif event == "PLAYER_LOGOUT" then
 		if addon:IsHooked(SI, 'ShowTooltip') then
@@ -249,8 +251,6 @@ local function tooltip_OnRelease()
 	firstpass = true
 end
 
-local KeystoneId = 138019
-
 -- line 3523 in SavedInstances.lua they do a tooltip:Clear()
 -- We don't have the luxury to do it here.  So we do our stuff in OnHide...
 function addon:Inject(anchorframe)
@@ -278,7 +278,7 @@ function addon:Inject(anchorframe)
 		if firstpass then
 			tooltip:AddSeparator()
 			local kname = GetItemInfo(KeystoneId)
-			local keystonestr = string.format(" \124T%s:0\124t%s", 525134, kname)
+			local keystonestr = string.format(" \124T%s:0\124t%s", 525134, kname or "")
 			linenum = tooltip:AddLine(YELLOWFONT .. keystonestr .. FONTEND)
 			firstpass = false
 			tooltip:SetScript('OnHide', tooltip_OnHide)
