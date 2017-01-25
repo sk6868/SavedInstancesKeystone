@@ -12,6 +12,7 @@ local YELLOWFONT = LIGHTYELLOW_FONT_COLOR_CODE
 local SI -- SavedInstances.core
 local thisToon = UnitName("player") .. " - " .. GetRealmName()
 local KeystoneId = 138019
+local _debug = false
 
 -- sorted traversal function for character table
 local cpairs
@@ -121,6 +122,14 @@ do
 	end
 end
 
+local function _debugPrint(...)
+	if _debug then
+		print("|cffa589c1SIK:", ...)
+		SavedInstancesKeystoneDB['_debuglog'] = SavedInstancesKeystoneDB['_debuglog'] or {}
+		SavedInstancesKeystoneDB['_debuglog'][#SavedInstancesKeystoneDB['_debuglog'] + 1] = table.concat({...}," ")
+	end
+end
+
 local function EventHandler(event, ...)
 	if addon[event] then
 		addon[event](addon, ...)
@@ -129,18 +138,19 @@ end
 
 local function FrameOnEvent(frame, event, ...)
 	if event == 'ADDON_LOADED' and ... == addonName then
+		SavedInstancesKeystoneDB = SavedInstancesKeystoneDB or {}
+		_debug = SavedInstancesKeystoneDB['_debug']
 		frame:RegisterEvent("PLAYER_LOGIN")
 		frame:RegisterEvent("PLAYER_LOGOUT")
 		frame:UnregisterEvent("ADDON_LOADED")
 	elseif event == "PLAYER_LOGIN" then
-		--print("SIK: PLAYER_LOGIN")
+		_debugPrint("PLAYER_LOGIN")
 		SI = LibStub("AceAddon-3.0"):GetAddon("SavedInstances")
 		if SI then
-			--print("success", SavedInstancesKeystoneDB)
+			_debugPrint("SI acquisition success", tostring(SavedInstancesKeystoneDB))
 			if not addon:IsHooked(SI, 'ShowTooltip') then
 				addon:SecureHook(SI, 'ShowTooltip', addon.Inject)
 			end
-			SavedInstancesKeystoneDB = SavedInstancesKeystoneDB or {}
 			local kname = GetItemInfo(KeystoneId) -- try to get the cache to store keystone itemid
 		end
 	elseif event == "PLAYER_LOGOUT" then
@@ -247,7 +257,7 @@ end
 local firstpass = true
 local linenum = 0
 local function tooltip_OnHide(tooltip)
-	--print("tooltip_OnHide")
+	_debugPrint("tooltip_OnHide")
 	-- Release the tooltip
 	QTip:Release(tooltip)
 	tooltip = nil
@@ -255,24 +265,30 @@ local function tooltip_OnHide(tooltip)
 end
 
 local function tooltip_OnRelease()
-	--print("tooltip_OnRelease")
+	_debugPrint("tooltip_OnRelease")
 	firstpass = true
 end
 
 -- line 3523 in SavedInstances.lua they do a tooltip:Clear()
 -- We don't have the luxury to do it here.  So we do our stuff in OnHide...
 function addon:Inject(anchorframe)
-	--print("Inject!!!!", QTip:IsAcquired("SavedInstancesTooltip"))
+	--_debugPrint("Inject", QTip:IsAcquired("SavedInstancesTooltip"))
 	if QTip:IsAcquired("SavedInstancesTooltip") then
 		local tooltip = QTip:Acquire("SavedInstancesTooltip", 1, "LEFT")
+		if not tooltip then
+			_debugPrint("could not acquire SavedInstancesTooltip")
+		end
 		local name = "columns"
 		local columns = SI["localarr#"..name]
-		if not columns then return end
+		if not columns then
+			_debugPrint("SI[localarr#columns] is nil")
+			return
+		end
 		
 		local usecache = true
 		-- find and update keystones
 		if firstpass then
-			addon:FindKeystones()
+			addon:FindKeystones(true)
 			usecache = false
 		end
 		
@@ -286,6 +302,9 @@ function addon:Inject(anchorframe)
 		if firstpass then
 			tooltip:AddSeparator()
 			local kname = GetItemInfo(KeystoneId)
+			if not kname then
+				_debugPrint("Mythic keystone GetItemInfo returned nil")
+			end
 			local keystonestr = string.format(" \124T%s:0\124t%s", 525134, kname or "")
 			linenum = tooltip:AddLine(YELLOWFONT .. keystonestr .. FONTEND)
 			tooltip:SetCellScript(linenum, 1, "OnEnter", ShowKeystoneSummary)
@@ -297,7 +316,7 @@ function addon:Inject(anchorframe)
 		for toon, t in cpairs(SavedInstances.db.Toons, usecache) do
 			local klink = SavedInstancesKeystoneDB[toon]
 			if klink then
-				--print("keystone found for toon", toon)
+				--_debugPrint("keystone found for toon", toon)
 				local col = columns[toon..1]
 				--tooltip:SetCell(linenum, col, klink, "CENTER", maxcol)
 				tooltip:SetCell(linenum, col, "\124T"..READY_CHECK_READY_TEXTURE..":0|t", "CENTER", maxcol) -- checkmark
@@ -305,11 +324,13 @@ function addon:Inject(anchorframe)
 				tooltip:SetCellScript(linenum, col, "OnLeave", CloseTooltips)
 			end
 		end
+	else
+		_debugPrint("QTip:IsAcquired(SavedInstancesTooltip) returned false")
 	end
 end
 
 local slots = {0, 0, 0, 0, 0}
-function addon:FindKeystones()
+function addon:FindKeystones(fromInject)
 	-- Prepare...
 	slots[1] = GetContainerNumSlots(0)
 	slots[2] = GetContainerNumSlots(1)
@@ -324,7 +345,7 @@ function addon:FindKeystones()
 
 			-- Check...
 			if itemId and itemId == KeystoneId then
-				--print("FOUND KEYSTONE", decodeKeystone(link))
+				_debugPrint("FindKeystones: FOUND KEYSTONE", decodeKeystone(link), fromInject and "true" or "false")
 				SavedInstancesKeystoneDB[thisToon] = link
 				return
 			end
@@ -332,6 +353,25 @@ function addon:FindKeystones()
 	end
 	SavedInstancesKeystoneDB[thisToon] = nil
 end
+
+function addon:SlashHandler(msg, editbox)
+	msg = strtrim(msg)
+	if msg == 'debug' then
+		SavedInstancesKeystoneDB['_debug'] = not SavedInstancesKeystoneDB['_debug']
+		_debug = SavedInstancesKeystoneDB['_debug']
+	elseif msg == 'clear' then
+		if SavedInstancesKeystoneDB['_debuglog'] and type(SavedInstancesKeystoneDB['_debuglog']) == 'table' then
+			wipe(SavedInstancesKeystoneDB['_debuglog'])
+			print("SavedInstancesKeystone debug log cleared")
+		end
+	else
+		print("/sik debug -- toggle debug output")
+		print("/sik clear -- clear debug log")
+	end
+	print("SavedInstancesKeystone debug is", SavedInstancesKeystoneDB['_debug'] and "on" or "off")
+end
+SLASH_SAVEDINSTANCESKEYSTONE1 = "/sik"
+SlashCmdList["SAVEDINSTANCESKEYSTONE"] = function(msg, editbox) addon:SlashHandler(msg, editbox) end
 
 local f = CreateFrame('Frame','SIKFrame')
 f:SetScript("OnEvent", FrameOnEvent)
