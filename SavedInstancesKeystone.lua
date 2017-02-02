@@ -233,8 +233,10 @@ end
 local function ShowKeystoneSummary(cell, arg, ...)
 	openIndicator(3, "LEFT","LEFT", "RIGHT")
 	for toon, klink in pairs(SavedInstancesKeystoneDB) do
-		local name, mlvl, mods, color = decodeKeystone(klink)
-		keystonetip:AddLine(YELLOWFONT..toon, name, mlvl)
+		if toon ~= "_debug" and toon ~= "_debuglog" then
+			local name, mlvl, mods, color = decodeKeystone(klink)
+			keystonetip:AddLine(YELLOWFONT..toon, name, mlvl)
+		end
 	end
 	finishIndicator(cell)
 end
