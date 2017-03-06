@@ -232,10 +232,14 @@ end
 
 local function ShowKeystoneSummary(cell, arg, ...)
 	openIndicator(3, "LEFT","LEFT", "RIGHT")
-	for toon, klink in pairs(SavedInstancesKeystoneDB) do
+	for toon, val in pairs(SavedInstancesKeystoneDB) do
 		if toon ~= "_debug" and toon ~= "_debuglog" then
-			local name, mlvl, mods, color = decodeKeystone(klink)
-			keystonetip:AddLine(YELLOWFONT..toon, name, mlvl)
+			if val and (type(val) == 'table') then
+				if val.nextreset and val.nextreset > time() then
+					local name, mlvl, mods, color = decodeKeystone(val.link)
+					keystonetip:AddLine(YELLOWFONT..toon, name, mlvl)
+				end
+			end
 		end
 	end
 	finishIndicator(cell)
@@ -295,7 +299,8 @@ function addon:Inject(anchorframe)
 		end
 		
 		for toon, t in cpairs(SavedInstances.db.Toons, usecache) do
-			if SavedInstancesKeystoneDB[toon] then
+			if SavedInstancesKeystoneDB[toon] and (type(SavedInstancesKeystoneDB[toon]) == 'table') and 
+				SavedInstancesKeystoneDB[toon].nextreset and (SavedInstancesKeystoneDB[toon].nextreset > time()) then
 				addColumns(columns, toon, tooltip)
 			end
 			usecache = true
@@ -316,14 +321,17 @@ function addon:Inject(anchorframe)
 			tooltip.OnRelease = tooltip_OnRelease
 		end
 		for toon, t in cpairs(SavedInstances.db.Toons, usecache) do
-			local klink = SavedInstancesKeystoneDB[toon]
-			if klink then
-				--_debugPrint("keystone found for toon", toon)
-				local col = columns[toon..1]
-				--tooltip:SetCell(linenum, col, klink, "CENTER", maxcol)
-				tooltip:SetCell(linenum, col, "\124T"..READY_CHECK_READY_TEXTURE..":0|t", "CENTER", maxcol) -- checkmark
-				tooltip:SetCellScript(linenum, col, "OnEnter", ShowKeystoneTooltip, klink)
-				tooltip:SetCellScript(linenum, col, "OnLeave", CloseTooltips)
+			if SavedInstancesKeystoneDB[toon] and (type(SavedInstancesKeystoneDB[toon]) == 'table') then
+				local klink = SavedInstancesKeystoneDB[toon].link
+				local nextreset = SavedInstancesKeystoneDB[toon].nextreset
+				if klink and (nextreset and nextreset > time()) then
+					--_debugPrint("keystone found for toon", toon)
+					local col = columns[toon..1]
+					--tooltip:SetCell(linenum, col, klink, "CENTER", maxcol)
+					tooltip:SetCell(linenum, col, "\124T"..READY_CHECK_READY_TEXTURE..":0|t", "CENTER", maxcol) -- checkmark
+					tooltip:SetCellScript(linenum, col, "OnEnter", ShowKeystoneTooltip, klink)
+					tooltip:SetCellScript(linenum, col, "OnLeave", CloseTooltips)
+				end
 			end
 		end
 	else
@@ -348,7 +356,15 @@ function addon:FindKeystones(fromInject)
 			-- Check...
 			if itemId and itemId == KeystoneId then
 				_debugPrint("FindKeystones: FOUND KEYSTONE", decodeKeystone(link), fromInject and "true" or "false")
-				SavedInstancesKeystoneDB[thisToon] = link
+				local nextreset = SavedInstances:GetNextWeeklyResetTime()
+				if nextreset and nextreset > time() then
+					if (not SavedInstancesKeystoneDB[thisToon]) or (type(SavedInstancesKeystoneDB[thisToon]) ~= 'table') then
+						SavedInstancesKeystoneDB[thisToon] = {}
+					end
+					SavedInstancesKeystoneDB[thisToon].link = link
+					SavedInstancesKeystoneDB[thisToon].nextreset = nextreset
+				end
+				--SavedInstancesKeystoneDB[thisToon] = link
 				return
 			end
 		end
