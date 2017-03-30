@@ -167,6 +167,7 @@ hooksecurefunc("Logout", function() addon:FindKeystones() end)
 hooksecurefunc("ForceQuit", function() addon:FindKeystones() end)
 hooksecurefunc("Quit", function() addon:FindKeystones() end)
 
+--[[
 local a1 = 0x080000
 local a2 = 0x100000
 local a3 = 0x200000
@@ -184,9 +185,56 @@ local function getModifierText(flags, modifierNum, modifierID)
 	end
 	return txt
 end
+]]--
+
+local function GetModifiers(modifier1, modifier2, modifier3)
+	local txt = ""
+	local modifierName
+	if modifier1 then
+		modifierName = C_ChallengeMode.GetAffixInfo(modifier1)
+		if (modifierName ~= nil) then
+			txt = " "..modifierName
+		end
+	end
+	if modifier2 then
+		modifierName = C_ChallengeMode.GetAffixInfo(modifier2)
+		if (modifierName ~= nil) then
+			txt = " "..modifierName
+		end
+	end
+	if modifier3 then
+		modifierName = C_ChallengeMode.GetAffixInfo(modifier3)
+		if (modifierName ~= nil) then
+			txt = " "..modifierName
+		end
+	end
+	return txt
+end
+
+local function hello(itemString, itemName)
+	local mapID, mapLevel, ready, modifier1, modifier2, modifier3 = strsplit(":", itemString)
+	local dung
+	if mapID and mapLevel then
+		dung = C_ChallengeMode.GetMapInfo(tonumber(mapID))
+		--print("1) "..dung)
+		--print("2) "..tonumber(mapLevel))
+	end
+	local modifiers = GetModifiers(modifier1, modifier2, modifier3)
+	--print("3) "..modifiers)
+	local color = select(4, GetItemQualityColor(4))
+	if tonumber(ready) ~= 1 then
+		color = select(4, GetItemQualityColor(0))
+	end
+	return dung, mapLevel, modifiers, color
+end
 
 local function decodeKeystone(itemLink)
-	local itemString = string.match(itemLink, "item[%-?%d:]+")
+	--print(itemLink:gsub('\124','\124\124'))
+	--local dung, mlvl, modifiers, color = itemLink:gsub("|Hkeystone:([0-9:]+)|h(%b[])|h", hello)
+	local itemString = itemLink:match("|Hkeystone:([0-9:]+)|h")
+	return hello(itemString)
+	--[[
+	local itemString = string.match(itemLink, "keystone:[%-?%d:]+")
 	local itemName = string.match(itemLink, "\124h.-\124h"):gsub("%[","%%[)("):gsub("%]",")(%%]")
 	local _,itemid,_,_,_,_,_,_,_,_,_,flags,_,_,mapid,mlvl,modifier1,modifier2,modifier3 = strsplit(":", itemString)
 
@@ -200,6 +248,7 @@ local function decodeKeystone(itemLink)
 		color = select(4, GetItemQualityColor(0))
 	end
 	return dung, mlvl, A1..A2..A3, color
+	]]--
 end
 
 local keystonetip
