@@ -199,13 +199,13 @@ local function GetModifiers(modifier1, modifier2, modifier3)
 	if modifier2 then
 		modifierName = C_ChallengeMode.GetAffixInfo(modifier2)
 		if (modifierName ~= nil) then
-			txt = " "..modifierName
+			txt = txt.." "..modifierName
 		end
 	end
 	if modifier3 then
 		modifierName = C_ChallengeMode.GetAffixInfo(modifier3)
 		if (modifierName ~= nil) then
-			txt = " "..modifierName
+			txt = txt.." "..modifierName
 		end
 	end
 	return txt
@@ -232,6 +232,7 @@ local function decodeKeystone(itemLink)
 	--print(itemLink:gsub('\124','\124\124'))
 	--local dung, mlvl, modifiers, color = itemLink:gsub("|Hkeystone:([0-9:]+)|h(%b[])|h", hello)
 	local itemString = itemLink:match("|Hkeystone:([0-9:]+)|h")
+	--print(itemString)
 	return hello(itemString)
 	--[[
 	local itemString = string.match(itemLink, "keystone:[%-?%d:]+")
